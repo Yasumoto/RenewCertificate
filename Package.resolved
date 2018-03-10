@@ -11,12 +11,21 @@
         }
       },
       {
+        "package": "DigicertSwift",
+        "repositoryURL": "https://github.com/Yasumoto/DigicertSwift",
+        "state": {
+          "branch": null,
+          "revision": "d1fedb5cb2eb3e2c837155f7ef6e2675653446be",
+          "version": "0.1.0"
+        }
+      },
+      {
         "package": "Menkyo",
         "repositoryURL": "https://github.com/Yasumoto/Menkyo",
         "state": {
           "branch": null,
-          "revision": "29193b89046f2ea40fccaa6c9dc6e3f827b13160",
-          "version": "1.2.0"
+          "revision": "e5e1a6f3b363148620b0e1f064d5ab8857897963",
+          "version": "1.2.3"
         }
       },
       {
