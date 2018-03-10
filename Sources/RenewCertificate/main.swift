@@ -77,5 +77,6 @@ guard let csrData = Files.contents(atPath: "./etc/ssl/\(filename).csr"), let csr
 }
 
 let digicert = DigicertSwift(apiKey: digicertConfig.key)
-let response = try digicert.requestWildcard(commonName: commonName, csr: csr, organizationId: digicertConfig.organization)
-print("Response from Digicert: \(response)")
+if let response = try digicert.requestWildcard(commonName: commonName, csr: csr, organizationId: digicertConfig.organization) {
+    print("Response from Digicert: \(response)")
+}
