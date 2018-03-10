@@ -17,21 +17,27 @@ if (args.contains("--help") || args.contains("-h")) {
     exit(1)
 }
 
-guard args.count == 3, let path = args.popLast(), let keyFile = args.popLast() else {
+guard args.count == 3, let certPath = args.popLast(), let configPath = args.popLast() else {
     print("Please pass the paths to a digicert API key file and the certificate file you need to renew!")
     exit(1)
 }
 
-guard let digicertKeyData = Files.contents(atPath: path) else {
-    print("Could not read your digicert config at \(path)")
+guard let digicertConfigData = Files.contents(atPath: configPath) else {
+    print("Could not read your digicert config at \(configPath)")
+    exit(1)
+}
+
+let digicertConfig: DigicertConfig
+do {
+    digicertConfig = try JSONDecoder().decode(DigicertConfig.self, from: digicertConfigData)
+} catch {
+    print("Error decoding Digicert Config at \(configPath):\n\(error)")
     print("Make sure it is JSON with two fields, \"key\" and \"organization\"")
     exit(1)
 }
 
-let digicertConfig = try JSONDecoder().decode(DigicertConfig.self, from: digicertKeyData)
-
-guard let certificate = Menkyo.readCertificateFile(path) else {
-    print("Could not read certificate at \(path)")
+guard let certificate = Menkyo.readCertificateFile(certPath) else {
+    print("Could not read certificate at \(certPath)")
     exit(1)
 }
 
@@ -49,7 +55,7 @@ guard let country = certificate.subjectName?[.country],
     let state = certificate.subjectName?[.state],
     let locality = certificate.subjectName?[.locality],
     let organization = certificate.subjectName?[.organization] else {
-    print("Certificate did not have properly formatted Subject")
+    print("Certificate did not have a properly formatted Subject")
     exit(1)
 }
 
