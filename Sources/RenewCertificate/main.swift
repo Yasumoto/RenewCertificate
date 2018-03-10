@@ -1,19 +1,34 @@
 import Foundation
+
+import DigicertSwift
 import Menkyo
 import SwiftShell
+
+struct DigicertConfig: Codable {
+    let key: String
+    let organization: Int
+}
 
 var args = CommandLine.arguments
 
 if (args.contains("--help") || args.contains("-h")) {
-    print("RenewCertificate <path>.crt")
+    print("RenewCertificate <keyfile> <path>.crt")
     print("Built from https://github.com/Yasumoto/RenewCertificate")
     exit(1)
 }
 
-guard args.count == 2, let path = args.last else {
-    print("Please pass the path to a certificate file to renew!")
+guard args.count == 3, let path = args.popLast(), let keyFile = args.popLast() else {
+    print("Please pass the paths to a digicert API key file and the certificate file you need to renew!")
     exit(1)
 }
+
+guard let digicertKeyData = Files.contents(atPath: path) else {
+    print("Could not read your digicert config at \(path)")
+    print("Make sure it is JSON with two fields, \"key\" and \"organization\"")
+    exit(1)
+}
+
+let digicertConfig = try JSONDecoder().decode(DigicertConfig.self, from: digicertKeyData)
 
 guard let certificate = Menkyo.readCertificateFile(path) else {
     print("Could not read certificate at \(path)")
@@ -38,14 +53,29 @@ guard let country = certificate.subjectName?[.country],
     exit(1)
 }
 
-var commandLine = "/usr/bin/certified --no-sign C=\"\(country)\" ST=\"\(state)\" L=\"\(locality)\" O=\"\(organization)\" CN=\"\(commonName)\""
+var certified = "/usr/bin/certified --no-sign C=\"\(country)\" ST=\"\(state)\" L=\"\(locality)\" O=\"\(organization)\" CN=\"\(commonName)\""
 
-for san in sans {
-    commandLine.append(" +\"\(san)\"")
+var filename = commonName
+if commonName.starts(with: "*") {
+    filename = commonName.replacingOccurrences(of: "*", with: "wildcard")
+    certified.append(" --name \(filename)")
 }
 
-print(commandLine)
+for san in sans {
+    certified.append(" +\"\(san)\"")
+}
 
-let output = run(bash: commandLine)
-print(output.stderror)
-print(output.stdout)
+print("Running: \(certified)")
+
+try runAndPrint(bash: certified)
+try runAndPrint(bash: "/usr/bin/git add './etc/ssl/\(filename).cnf' './etc/ssl/\(filename).csr' './etc/ssl/private/\(filename).key'")
+try runAndPrint(bash: "/usr/bin/git commit -a -m \"New key for \(commonName)\"")
+
+guard let csrData = Files.contents(atPath: "./etc/ssl/\(filename).csr"), let csr = String(bytes: csrData, encoding: .utf16) else {
+    print("Could not read the generated CSR ./etc/ssl/\(filename).csr")
+    exit(1)
+}
+
+let digicert = DigicertSwift(apiKey: digicertConfig.key)
+let response = try digicert.requestWildcard(commonName: commonName, csr: csr, organizationId: digicertConfig.organization)
+print("Response from Digicert: \(response)")
