@@ -77,7 +77,7 @@ try runAndPrint(bash: certified)
 try runAndPrint(bash: "/usr/bin/git add './etc/ssl/\(filename).cnf' './etc/ssl/\(filename).csr' './etc/ssl/private/\(filename).key'")
 try runAndPrint(bash: "/usr/bin/git commit -a -m \"New key for \(commonName)\"")
 
-guard let csrData = Files.contents(atPath: "./etc/ssl/\(filename).csr"), let csr = String(bytes: csrData, encoding: .utf16) else {
+guard let csrData = Files.contents(atPath: "./etc/ssl/\(filename).csr"), let csr = String(bytes: csrData, encoding: .utf8) else {
     print("Could not read the generated CSR ./etc/ssl/\(filename).csr")
     exit(1)
 }
