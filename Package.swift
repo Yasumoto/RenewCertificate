@@ -7,7 +7,7 @@ let package = Package(
     name: "RenewCertificate",
     dependencies: [
         .package(url: "https://github.com/Yasumoto/Menkyo", from: "1.2.3"),
-        .package(url: "https://github.com/Yasumoto/DigicertSwift", from: "0.1.0"),
+        .package(url: "https://github.com/Yasumoto/DigicertSwift", from: "0.2.0"),
         .package(url: "https://github.com/kareman/SwiftShell", from: "4.0.2")
 
     ],
