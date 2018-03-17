@@ -71,9 +71,14 @@ for san in sans {
     certified.append(" +\"\(san)\"")
 }
 
-print("Running: \(certified)")
+
+try runAndPrint(bash: "/usr/bin/git checkout -b certificate-\(filename)")
+
+try runAndPrint(bash: "/usr/bin/git rm \(certPath)")
+try runAndPrint(bash: "/usr/bin/git commit -a -m \"Replace certificate for \(filename)\"")
 
 try runAndPrint(bash: certified)
+
 try runAndPrint(bash: "/usr/bin/git add './etc/ssl/\(filename).cnf' './etc/ssl/\(filename).csr' './etc/ssl/private/\(filename).key'")
 try runAndPrint(bash: "/usr/bin/git commit -a -m \"New key for \(commonName)\"")
 
@@ -87,3 +92,5 @@ if let response = try digicert.requestCloud(commonName: commonName, sans: sans, 
     print("Please visit the following URL to review and approve the request in state: \(response.status)")
     print("https://www.digicert.com/secure/requests/?status=pending#\(response.id)")
 }
+
+try runAndPrint(bash: "/usr/bin/git push origin certificate-\(filename)")
