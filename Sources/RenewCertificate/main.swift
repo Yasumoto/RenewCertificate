@@ -31,19 +31,19 @@ guard let certPath = URL(string: certLocation)?.absoluteString, manager.fileExis
     print("Please make sure a certificate file exists at \(certLocation)")
     exit(1)
 }
-
 var prefixBranch = false
 let prefix = URL(string: certPath)!.pathComponents
     .filter({ path in
         if prefixBranch {
             return false
         }
-        if path == "ssl" {
+        if path == "default" {
             prefixBranch = true
         }
         return true
     })
     .joined(separator: "/")
+
 
 guard let digicertConfigData = manager.contents(atPath: configPath) else {
     print("Could not read your digicert config at \(configPath)")
@@ -97,16 +97,21 @@ for san in sans {
 
 try runAndPrint(bash: "/usr/bin/git checkout -b certificate-\(filename)")
 
-try runAndPrint(bash: "/usr/bin/git rm \(certPath)")
+sleep(1)
+try runAndPrint(bash: "/usr/bin/git rm \(certPath) \(prefix)/etc/ssl/\(filename).{csr,cnf}")
+try runAndPrint(bash: "/usr/bin/git rm -rf \(prefix)/etc/ssl/private/\(filename).key")
 try runAndPrint(bash: "/usr/bin/git commit -a -m \"Replace certificate for \(filename)\"")
 
+let currentDirectoryPath = manager.currentDirectoryPath
+manager.changeCurrentDirectoryPath(prefix)
 try runAndPrint(bash: certified)
+manager.changeCurrentDirectoryPath(currentDirectoryPath)
 
-try runAndPrint(bash: "/usr/bin/git add '\(prefix)/\(filename).cnf' '\(prefix)/\(filename).csr'")
+try runAndPrint(bash: "/usr/bin/git add \(prefix)/etc/ssl/\(filename).{csr,cnf}")
 try runAndPrint(bash: "/usr/bin/git commit -a -m \"New key for \(commonName)\"")
 
-guard let csrData = manager.contents(atPath: "./etc/ssl/\(filename).csr"), let csr = String(bytes: csrData, encoding: .utf8) else {
-    print("Could not read the generated CSR ./etc/ssl/\(filename).csr")
+guard let csrData = manager.contents(atPath: "\(prefix)/etc/ssl/\(filename).csr"), let csr = String(bytes: csrData, encoding: .utf8) else {
+    print("Could not read the generated CSR \(prefix)/etc/ssl/\(filename).csr")
     exit(1)
 }
 
