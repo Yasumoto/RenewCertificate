@@ -17,12 +17,35 @@ if (args.contains("--help") || args.contains("-h")) {
     exit(1)
 }
 
-guard args.count == 3, let certPath = args.popLast(), let configPath = args.popLast() else {
+guard args.count == 3, let certLocation = args.popLast(), let configLocation = args.popLast() else {
     print("Please pass the paths to a digicert API key file and the certificate file you need to renew!")
     exit(1)
 }
 
-guard let digicertConfigData = Files.contents(atPath: configPath) else {
+let manager = FileManager.default
+guard let configPath = URL(string: configLocation)?.absoluteString, manager.fileExists(atPath: configPath) else {
+    print("Please make sure a json file with credentials exists at \(configLocation)")
+    exit(1)
+}
+guard let certPath = URL(string: certLocation)?.absoluteString, manager.fileExists(atPath: certPath) else {
+    print("Please make sure a certificate file exists at \(certLocation)")
+    exit(1)
+}
+
+var prefixBranch = false
+let prefix = URL(string: certPath)!.pathComponents
+    .filter({ path in
+        if prefixBranch {
+            return false
+        }
+        if path == "ssl" {
+            prefixBranch = true
+        }
+        return true
+    })
+    .joined(separator: "/")
+
+guard let digicertConfigData = manager.contents(atPath: configPath) else {
     print("Could not read your digicert config at \(configPath)")
     exit(1)
 }
@@ -79,10 +102,10 @@ try runAndPrint(bash: "/usr/bin/git commit -a -m \"Replace certificate for \(fil
 
 try runAndPrint(bash: certified)
 
-try runAndPrint(bash: "/usr/bin/git add './etc/ssl/\(filename).cnf' './etc/ssl/\(filename).csr' './etc/ssl/private/\(filename).key'")
+try runAndPrint(bash: "/usr/bin/git add '\(prefix)/\(filename).cnf' '\(prefix)/\(filename).csr'")
 try runAndPrint(bash: "/usr/bin/git commit -a -m \"New key for \(commonName)\"")
 
-guard let csrData = Files.contents(atPath: "./etc/ssl/\(filename).csr"), let csr = String(bytes: csrData, encoding: .utf8) else {
+guard let csrData = manager.contents(atPath: "./etc/ssl/\(filename).csr"), let csr = String(bytes: csrData, encoding: .utf8) else {
     print("Could not read the generated CSR ./etc/ssl/\(filename).csr")
     exit(1)
 }
