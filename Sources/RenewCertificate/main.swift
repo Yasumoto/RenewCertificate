@@ -31,6 +31,7 @@ guard let certPath = URL(string: certLocation)?.absoluteString, manager.fileExis
     print("Please make sure a certificate file exists at \(certLocation)")
     exit(1)
 }
+
 var prefixBranch = false
 let prefix = URL(string: certPath)!.pathComponents
     .filter({ path in
@@ -44,18 +45,13 @@ let prefix = URL(string: certPath)!.pathComponents
     })
     .joined(separator: "/")
 
-
 guard let digicertConfigData = manager.contents(atPath: configPath) else {
     print("Could not read your digicert config at \(configPath)")
     exit(1)
 }
 
-let digicertConfig: DigicertConfig
-do {
-    digicertConfig = try JSONDecoder().decode(DigicertConfig.self, from: digicertConfigData)
-} catch {
-    print("Error decoding Digicert Config at \(configPath):\n\(error)")
-    print("Make sure it is JSON with two fields, \"key\" and \"organization\"")
+guard let digicertConfig = try? JSONDecoder().decode(DigicertConfig.self, from: digicertConfigData) else {
+    print("Make sure the DigicertConfig is JSON with two fields, \"key\" and \"organization\"")
     exit(1)
 }
 
@@ -90,10 +86,9 @@ if commonName.starts(with: "*") {
     certified.append(" --name \(filename)")
 }
 
-for san in sans {
-    certified.append(" +\"\(san)\"")
-}
-
+// Certified will automatically include the common name
+_ = sans.filter( { $0 != commonName })
+    .map({ certified.append(" +\"\($0)\"") })
 
 try runAndPrint(bash: "/usr/bin/git checkout -b certificate-\(filename)")
 
