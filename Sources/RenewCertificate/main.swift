@@ -94,7 +94,11 @@ try runAndPrint(bash: "/usr/bin/git checkout -b certificate-\(filename)")
 
 sleep(1)
 try runAndPrint(bash: "/usr/bin/git rm \(certPath) \(prefix)/etc/ssl/\(filename).{csr,cnf}")
-try runAndPrint(bash: "/usr/bin/git rm -rf \(prefix)/etc/ssl/private/\(filename).key")
+do {
+    try runAndPrint(bash: "/usr/bin/git rm -rf \(prefix)/etc/ssl/private/\(filename).key")
+} catch {
+    print("This file doesn't exist or isn't in git, so passing: \(prefix)/etc/ssl/private/\(filename).key)")
+}
 try runAndPrint(bash: "/usr/bin/git commit -a -m \"Replace certificate for \(filename)\"")
 
 let currentDirectoryPath = manager.currentDirectoryPath
